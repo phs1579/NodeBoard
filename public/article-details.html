@@ -1,0 +1,168 @@
+<!-- article-details.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 페이지의 메타 정보를 설정합니다. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- 페이지의 제목을 설정합니다. -->
+    <title>게시글 상세 정보</title>
+
+    <!-- 페이지의 스타일을 지정하는 CSS 코드입니다. -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            margin: 0;
+        }
+
+        h1 a {
+            text-decoration: none;
+            color: #fff;
+            transition: color 0.3s ease;
+        }
+
+        h1 a:hover {
+            color: blue;
+        }
+
+        #article-details {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+        }
+
+        #article-details strong {
+            font-weight: bold;
+        }
+
+        #article-details hr {
+            margin: 10px 0;
+            border: 0;
+            border-top: 1px solid #ddd;
+        }
+
+        #article-button {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        #update-button,
+        #delete-button,
+        #goBack {
+            display: inline-block;
+            padding: 10px;
+            margin: 10px 5px 20px; /* 여기 수정: 버튼 아래 마진 추가 */
+            background-color: #333;
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #update-button:hover,
+        #delete-button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 페이지 상단에 위치하는 제목 부분입니다. -->
+    <h1><a href="http://localhost:3000/">게시글 상세 정보</a></h1>
+
+    <!-- 게시글의 상세 정보를 표시하는 부분입니다. -->
+    <div id="article-details"></div>
+
+    <!-- 업데이트 및 삭제 버튼이 있는 부분입니다. -->
+    <div id="article-button">  
+        <!-- 업데이트 버튼 -->
+        <button id="update-button">게시글 수정</button>
+        
+        <!-- 삭제 버튼 -->
+        <button id="delete-button">게시글 삭제</button>
+
+        <!-- 뒤로가기 버튼 -->
+        <button id="goBack" onclick="goBack()">뒤로 가기</button>
+    </div>
+
+    <!-- JavaScript 코드입니다. -->
+    <script>
+        // Get Article ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleId = urlParams.get('id');
+
+        // Fetch Article Details
+        fetch(`http://localhost:3000/articles/${articleId}`)
+            .then(response => response.json())
+            .then(article => {
+                const articleDetails = document.getElementById('article-details');
+                if (article) {
+                    // 게시글이 존재하는 경우 상세 정보를 표시합니다.
+                    articleDetails.innerHTML = `
+                        <strong>Title:</strong> ${article.title}<br>
+                        <strong>Writer:</strong> ${article.writer}<br>
+                        <strong>Content:</strong> ${article.content}<br>
+                        <strong>Views:</strong> ${article.view_cnt}<br>
+                        <strong>Insert Time:</strong> ${article.insert_time}<br>
+                        <strong>Update Time:</strong> ${article.update_time ? article.update_time : 'N/A'}<br>
+                        <hr>
+                    `;
+                } else {
+                    // 게시글이 존재하지 않는 경우 메시지를 표시합니다.
+                    articleDetails.innerHTML = '<p>게시글을 찾을 수 없습니다.</p>';
+                }
+            });
+
+        // Add event listener to the Update button
+        const updateButton = document.getElementById('update-button');
+        updateButton.addEventListener('click', function () {
+            // Update.html 페이지로 게시글 ID와 함께 리디렉션합니다.
+            window.location.href = `update.html?id=${articleId}`;
+        });
+
+        // Add event listener to the Delete button
+        const deleteButton = document.getElementById('delete-button');
+        deleteButton.addEventListener('click', function () {
+            // 삭제 전 확인 메시지를 표시합니다.
+            const confirmDelete = confirm('이 게시글을 삭제하시겠습니까?');
+            if (confirmDelete) {
+                // 게시글 삭제를 요청합니다.
+                fetch(`http://localhost:3000/article/${articleId}`, {
+                    method: 'DELETE',
+                })
+                .then(response => response.json())
+                .then(deletedArticle => {
+                    console.log('게시글이 삭제되었습니다:', deletedArticle);
+
+                    // 삭제 후 index.html 페이지로 리디렉션합니다.
+                    window.location.href = 'http://localhost:3000/';
+                })
+                .catch(error => {
+                    console.error('게시글 삭제 중 오류 발생:', error);
+                });
+            }
+        });
+
+            // 뒤로가기 버튼을 눌렀을 때 이전 페이지로 이동하는 함수
+            function goBack() {
+                window.history.back();
+            }
+    </script>
+</body>
+</html>

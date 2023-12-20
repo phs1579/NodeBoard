@@ -1,0 +1,121 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 페이지의 메타 정보를 설정합니다. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 페이지의 스타일을 지정하는 CSS 코드입니다. -->
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+
+        h1 {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px;
+            margin: 0;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            background-color: #343a40;
+            overflow: hidden;
+        }
+
+        nav ul li {
+            float: left;
+            display: inline;
+            padding: 10px;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: bold;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #343a40;
+            transition: background-color 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            background-color: #495057;
+        }
+
+        #articles-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px;
+        }
+
+        #articles-list li {
+            background-color: #ffffff;
+            border: 1px solid #ced4da;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #articles-list li a {
+            text-decoration: none;
+            color: #343a40;
+            font-weight: bold;
+        }
+
+        #articles-list li a:hover {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 페이지의 제목을 설정합니다. -->
+    <title>게시글 목록</title>
+    <!-- 페이지 상단에 표시되는 제목입니다. -->
+    <h1>게시글 목록</h1>
+    
+    <!-- 네비게이션 링크 -->
+    <nav>
+        <ul>
+            <!-- 게시글 작성 페이지로 이동하는 링크 -->
+            <li><a href="create.html">게시글 작성</a></li>
+        </ul>
+    </nav>
+
+    <!-- 게시글 목록을 표시하는 부분입니다. -->
+    <ul id="articles-list"></ul>
+
+    <!-- JavaScript 코드입니다. -->
+    <script>
+        // 게시글 목록을 가져오는 함수
+        fetch('http://localhost:3000/articles')
+            .then(response => response.json())
+            .then(articles => {
+                const articlesList = document.getElementById('articles-list');
+                articles.forEach(article => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <strong>Title:</strong> ${article.title}<br>
+                        <strong>Writer:</strong> ${article.writer}<br>
+                        <strong>Content:</strong> ${article.content}<br>
+                        <strong>Views:</strong> ${article.view_cnt}<br>
+                        <strong>Insert Time:</strong> ${article.insert_time}<br>
+                        <strong>Update Time:</strong> ${article.update_time ? article.update_time : 'N/A'}<br>
+                        <strong>Delete Time:</strong> ${article.delete_time ? article.delete_time : 'N/A'}<br>
+                        <a href="article-details.html?id=${article.idx}">상세 정보 보기</a><br>
+                        <hr>
+                    `;
+                    articlesList.appendChild(li);
+                });
+            });
+    </script>
+</body>
+</html>

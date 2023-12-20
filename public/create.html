@@ -1,0 +1,81 @@
+<!-- create.html -->
+
+<style>
+    /* create.html에 해당하는 CSS 스타일 */
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    form {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    input[type="text"],
+    textarea {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
+
+    button {
+        background-color: #333;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        margin-right: 10px; /* 추가된 부분: 뒤로가기 버튼과의 간격을 조절합니다. */
+    }
+
+    button:hover {
+        background-color: #555;
+    }
+
+</style>
+
+<!-- 페이지 상단에 표시되는 제목입니다. -->
+<h1>Create Article</h1>
+
+<!-- 게시글 작성 폼입니다. -->
+<form id="create-form">
+    <label for="title">제목:</label>
+    <input type="text" id="title" name="title" required><br>
+
+    <label for="writer">작성자:</label>
+    <input type="text" id="writer" name="writer" required><br>
+
+    <label for="content">내용:</label>
+    <textarea id="content" name="content" required></textarea><br>
+
+    <!-- 게시글 작성 버튼 -->
+    <button type="submit">게시글 작성</button>
+
+    <!-- 뒤로가기 버튼 -->
+    <button onclick="goBack()">뒤로 가기</button>
+</form>
+
+<!-- 게시글 작성 스크립트 파일을 로드합니다. -->
+<script src="createArticle.js"></script>
+
+<!-- 뒤로가기 버튼을 처리하는 스크립트입니다. -->
+<script>
+    // 뒤로가기 버튼을 눌렀을 때 이전 페이지로 이동하는 함수
+    function goBack() {
+        window.history.back();
+    }
+</script>
