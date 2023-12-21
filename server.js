@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
 
 // 'public' 디렉토리에서 정적 파일을 제공합니다.
 app.use(express.static('public'));
-
+ 
 // 게시판에서 게시판 목록을 가져오는 라우트입니다.
 app.get('/articles', (req, res) => {
     const page = parseInt(req.query.page) || 1; // 요청된 페이지 번호를 쿼리 매개변수에서 가져옵니다
