@@ -37,51 +37,80 @@ app.get('/', (req, res) => {
 });
 
 
+// 'public' 디렉토리에서 정적 파일을 제공합니다.
+app.use(express.static('public'));
+
 // 게시판에서 게시판 목록을 가져오는 라우트입니다.
 app.get('/articles', (req, res) => {
-    // 'board' 테이블에서 모든 레코드를 선택하기 위한 데이터베이스 쿼리를 실행합니다.
-    connection.query('SELECT * FROM board order by idx desc', (err, rows) => {
-        if (err) throw err;
-        console.log(rows);
-        // 검색된 레코드를 응답으로 전송합니다.
-        res.send(rows);
-    });
-});
+    const page = parseInt(req.query.page) || 1; // 요청된 페이지 번호를 쿼리 매개변수에서 가져옵니다
+    const pageSize = 3; // 이 값을 원하는 대로 조절하세요
 
-// 특정 ID에 대한 게시글 세부 정보를 가져오는 라우트입니다.
-app.get('/articles/:id', (req, res, next) => {
-    const articleId = parseInt(req.params.id);
+    // 요청된 페이지 및 페이지 크기를 기반으로 레코드를 건너뛰기 위한 오프셋을 계산합니다.
+    const offset = (page - 1) * pageSize;
 
-    // 게시글 조회 시 view_cnt 증가를 위한 UPDATE 쿼리
-    const updateViewCountQuery = `UPDATE board SET view_cnt = view_cnt + 1 WHERE idx = ?`;
-    connection.query(updateViewCountQuery, [articleId], (updateErr, updateResult) => {
-        if (updateErr) {
-            console.error('게시글 조회 시 view_cnt 증가 중 오류 발생:', updateErr);
-            // 오류가 발생하면 계속 진행하지 않고 오류 응답을 전송합니다.
+    // 'board' 테이블에서 페이지별로 정렬된 레코드를 선택하는 데이터베이스 쿼리를 실행합니다.
+    const query = 'SELECT * FROM board ORDER BY idx DESC LIMIT ? OFFSET ?';
+    connection.query(query, [pageSize, offset], (err, rows) => {
+        if (err) {
+            console.error('페이징된 게시글 목록을 가져오는 중 오류 발생:', err);
+            // 오류가 발생하면 오류 응답을 전송합니다.
             return res.status(500).send('서버 오류');
         }
 
-        // 'board' 테이블에서 모든 레코드를 선택하기 위한 데이터베이스 쿼리를 실행합니다.
-        const selectQuery = `SELECT * FROM board WHERE idx = ?`;
-        connection.query(selectQuery, [articleId], (err, rows) => {
+        // 'board' 테이블의 총 레코드 수를 가져오는 쿼리
+        const countQuery = 'SELECT COUNT(*) AS totalCount FROM board';
+        connection.query(countQuery, (err, result) => {
             if (err) {
-                console.error('게시글 조회 중 오류 발생:', err);
-                // 오류가 발생하면 계속 진행하지 않고 오류 응답을 전송합니다.
+                console.error('총 레코드 수를 가져오는 중 오류 발생:', err);
                 return res.status(500).send('서버 오류');
             }
 
-            // 주어진 ID를 기반으로 검색된 레코드에서 게시글을 찾습니다.
-            const article = rows[0];
-            if (!article) {
-                // 게시글을 찾지 못하면 404 상태와 메시지를 전송합니다.
-                return res.status(404).send('ID를 찾을 수 없습니다.');
-            }
+            const totalCount = result[0].totalCount;
+            const totalPages = Math.ceil(totalCount / pageSize);
 
-            // 찾은 게시글을 응답으로 전송합니다.
-            res.send(article);
+            // 검색된 레코드 및 최대 페이지 수를 응답으로 전송합니다.
+            res.send({ rows, totalPages, page_current: page, page_max: totalPages });
         });
     });
 });
+
+
+
+
+// 게시판에서 게시판 목록을 가져오는 라우트입니다.
+app.get('/articles', (req, res) => {
+    const page = parseInt(req.query.page) || 1; // 요청된 페이지 번호를 쿼리 매개변수에서 가져옵니다
+    const pageSize = 3; // 이 값을 원하는 대로 조절하세요
+
+    // 요청된 페이지 및 페이지 크기를 기반으로 레코드를 건너뛰기 위한 오프셋을 계산합니다.
+    const offset = (page - 1) * pageSize;
+
+    // 'board' 테이블에서 페이지별로 정렬된 레코드를 선택하는 데이터베이스 쿼리를 실행합니다.
+    const query = 'SELECT * FROM board ORDER BY idx DESC LIMIT ? OFFSET ?';
+    connection.query(query, [pageSize, offset], (err, rows) => {
+        if (err) {
+            console.error('페이징된 게시글 목록을 가져오는 중 오류 발생:', err);
+            // 오류가 발생하면 오류 응답을 전송합니다.
+            return res.status(500).send('서버 오류');
+        }
+
+        // 'board' 테이블의 총 레코드 수를 가져오는 쿼리
+        const countQuery = 'SELECT COUNT(*) AS totalCount FROM board';
+        connection.query(countQuery, (err, result) => {
+            if (err) {
+                console.error('총 레코드 수를 가져오는 중 오류 발생:', err);
+                return res.status(500).send('서버 오류');
+            }
+
+            const totalCount = result[0].totalCount;
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            // 검색된 레코드 및 최대 페이지 수를 응답으로 전송합니다.
+            res.send({ rows, totalPages, page_current: page, page_max: totalPages });
+        });
+    });
+});
+
 
 
 // 새로운 게시글을 작성하는 라우트입니다.

@@ -74,6 +74,42 @@
         #articles-list li a:hover {
             color: #007bff;
         }
+
+         /* 페이징 컨트롤의 스타일을 설정합니다. */
+        .pagination {
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .pagination li {
+            display: inline;
+            margin-right: 5px;
+        }
+
+        .pagination a {
+            color: #007bff;
+            padding: 5px 10px;
+            text-decoration: none;
+            border: 1px solid #007bff;
+            border-radius: 3px;
+        }
+
+        .pagination .active a {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .pagination a:hover {
+            background-color: #0056b3;
+            color: #fff;
+        }
+
+        .pagination .disabled a {
+            pointer-events: none;
+            cursor: not-allowed;
+            background-color: #ccc;
+            color: #777;
+        }
     </style>
 </head>
 <body>
@@ -93,29 +129,114 @@
     <!-- 게시글 목록을 표시하는 부분입니다. -->
     <ul id="articles-list"></ul>
 
+    <!-- Pagination controls -->
+    <div id="pagination" class="col-8">
+        <ul class="pagination pagination-sm justify-content-center align-items-center h-100 mb-0" id="pageList"></ul>
+    </div>
+
     <!-- JavaScript 코드입니다. -->
     <script>
-        // 게시글 목록을 가져오는 함수
-        fetch('http://localhost:3000/articles')
-            .then(response => response.json())
-            .then(articles => {
-                const articlesList = document.getElementById('articles-list');
-                articles.forEach(article => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <strong>Title:</strong> ${article.title}<br>
-                        <strong>Writer:</strong> ${article.writer}<br>
-                        <strong>Content:</strong> ${article.content}<br>
-                        <strong>Views:</strong> ${article.view_cnt}<br>
-                        <strong>Insert Time:</strong> ${article.insert_time}<br>
-                        <strong>Update Time:</strong> ${article.update_time ? article.update_time : 'N/A'}<br>
-                        <strong>Delete Time:</strong> ${article.delete_time ? article.delete_time : 'N/A'}<br>
-                        <a href="article-details.html?id=${article.idx}">상세 정보 보기</a><br>
-                        <hr>
-                    `;
-                    articlesList.appendChild(li);
+        // 변수 초기화
+        const articlesList = document.getElementById('articles-list'); // HTML에서 게시글 목록을 표시할 엘리먼트
+        const pageListElement = document.getElementById('pageList'); // HTML에서 페이지 목록을 표시할 엘리먼트
+        let currentPage = 1; // 현재 페이지 변수 초기화
+        let maxPages = 1; // 최대 페이지 수를 저장하는 변수 초기화
+
+        // 함수: 게시글 목록을 가져오는 함수
+        function fetchArticles(page) {
+            const pageSize = 5; // 페이지당 표시할 게시글 수 (원하는 값으로 조절)
+            const startIndex = (page - 1) * pageSize; // 가져올 게시글의 시작 인덱스
+
+            // 서버로부터 게시글 데이터 가져오기
+            fetch(`http://localhost:3000/articles?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    const articles = data.rows; // 서버에서 받아온 게시글 데이터
+                    articlesList.innerHTML = ''; // 이전에 표시된 게시글 초기화
+
+                    // 각 게시글을 리스트에 추가
+                    articles.forEach(article => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <strong>Title:</strong> ${article.title}<br>
+                            <strong>Writer:</strong> ${article.writer}<br>
+                            <strong>Content:</strong> ${article.content}<br>
+                            <strong>Views:</strong> ${article.view_cnt}<br>
+                            <strong>Insert Time:</strong> ${article.insert_time}<br>
+                            <strong>Update Time:</strong> ${article.update_time ? article.update_time : 'N/A'}<br>
+                            <strong>Delete Time:</strong> ${article.delete_time ? article.delete_time : 'N/A'}<br>
+                            <a href="article-details.html?id=${article.idx}">상세 정보 보기</a><br>
+                            <hr>
+                        `;
+                        articlesList.appendChild(li);
+                    });
+
+                    // 전체 페이지 수 업데이트
+                    maxPages = data.totalPages;
+
+                    // 페이지 목록 업데이트
+                    renderPaginationControls(data.page_current, data.page_max);
                 });
-            });
+        }
+
+        // 함수: 페이지 변경 이벤트 처리
+        function changePage(page) {
+            // 페이지가 1보다 작아지지 않도록 보장
+            currentPage = Math.max(page, 1);
+            // 페이지가 최대 페이지 수를 초과하지 않도록 보장
+            currentPage = Math.min(currentPage, maxPages);
+
+            // 페이지를 업데이트하고 게시글을 가져옵니다.
+            fetchArticles(currentPage);
+        }
+
+        // 함수: 페이지 목록 렌더링
+        function renderPaginationControls(page_current, page_max) {
+            // 페이지 목록 엘리먼트를 찾지 못한 경우 에러를 방지하기 위해 확인
+            if (!pageListElement) {
+                console.error("Error in renderPaginationControls: Unable to find the 'pageList' element on the page.");
+                return;
+            }
+
+            // 이전 페이지 목록 초기화
+            pageListElement.innerHTML = '';
+
+            const offset = 2;
+            const previousBtnEnabled = page_current > 1; // 이전 버튼 활성화 여부
+            const nextBtnEnabled = page_current < page_max; // 다음 버튼 활성화 여부
+
+            // "이전" 버튼 추가
+            pageListElement.innerHTML += `
+                <li class="page-item ${previousBtnEnabled ? '' : 'disabled'}">
+                    <a class="page-link" href="#" onclick="changePage(${page_current - 1})" ${previousBtnEnabled ? '' : 'tabindex=-1'}>«</a>
+                </li>
+            `;
+
+            // 페이지 번호 추가
+            for (let i = 1; i <= page_max; i++) {
+                if (i == 1 || i == page_max || (i >= page_current - offset && i <= page_current + offset)) {
+                    pageListElement.innerHTML += `
+                        <li class="page-item ${page_current == i ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                        </li>
+                    `;
+                } else if (i == 2 || i == page_max - 1) {
+                    pageListElement.innerHTML += `
+                        <li><a class="page-link">...</a></li>
+                    `;
+                }
+            }
+
+            // "다음" 버튼 추가
+            pageListElement.innerHTML += `
+                <li class="page-item ${nextBtnEnabled ? '' : 'disabled'}">
+                    <a class="page-link" href="#" onclick="changePage(${page_current + 1})" ${nextBtnEnabled ? '' : 'tabindex=-1'}>»</a>
+                </li>
+            `;
+        }
+
+        // 초기 페이지 로딩 시 첫 번째 페이지의 게시글 가져오기
+        fetchArticles(1);
     </script>
 </body>
 </html>
