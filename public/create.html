@@ -56,8 +56,8 @@
     <label for="title">제목:</label>
     <input type="text" id="title" name="title" required><br>
 
-    <label for="writer">작성자:</label>
-    <input type="text" id="writer" name="writer" required><br>
+    <label for="user_id">작성자:</label>
+    <input type="text" id="user_id" name="user_id" value="<%= user.username %>" readonly required><br>
 
     <label for="content">내용:</label>
     <textarea id="content" name="content" required></textarea><br>
@@ -69,8 +69,6 @@
     <button onclick="goBack()">뒤로 가기</button>
 </form>
 
-<!-- 게시글 작성 스크립트 파일을 로드합니다. -->
-<script src="createArticle.js"></script>
 
 <!-- 뒤로가기 버튼을 처리하는 스크립트입니다. -->
 <script>
@@ -78,4 +76,92 @@
     function goBack() {
         window.history.back();
     }
+
+    // 변경된 부분: 사용자 정보 가져와서 작성자 필드에 설정
+    fetch('/checkSession')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(user => {
+            const writerField = document.getElementById('user_id');
+            if (user) {
+                // 세션에서 가져온 사용자 이름을 작성자 필드에 설정
+                writerField.value = user.username;
+            } else {
+                // 사용자가 로그인하지 않은 경우에 대한 처리
+                console.log('User not logged in.');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking user session:', error);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+    const createForm = document.getElementById('create-form');
+
+    createForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        // Retrieve values from form fields
+        const title = document.getElementById('title').value;
+        const user_id = document.getElementById('user_id').value;
+        const content = document.getElementById('content').value;
+
+        // Check if any of the required fields are empty
+        if (!title || !user_id || !content) {
+            console.error('Incomplete data for article creation');
+            return;  // Stop further execution if data is incomplete
+        }
+
+        // Retrieve the user ID from the cookie
+        const userId = getCookie('userID');
+
+        // Create an object with the data
+        const articleData = {
+            title: title,
+            user_id: user_id,
+            content: content,
+            userId: userId
+        };
+
+        // AJAX or Fetch API to send the article creation request to the server
+        fetch('/article', {  // Update the endpoint to match your server-side route
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + userId
+            },
+            body: JSON.stringify(articleData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Server response handling and displaying result message
+            console.log(data.message);
+            if (data.status === 201) {
+                // Article creation successful, redirect to the desired page
+                alert("게시글이 생성되었습니다!");
+                window.location.href = 'http://localhost:3000/';  // Update the URL as needed
+            }
+        })
+        .catch(error => {
+            console.error('Error creating article:', error);
+        });
+    });
+
+    // Function to retrieve a cookie by name
+    function getCookie(name) {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [cookieName, cookieValue] = cookie.trim().split('=');
+            if (cookieName === name) {
+                return cookieValue;
+            }
+        }
+        return null;
+    }
+});
+
 </script>

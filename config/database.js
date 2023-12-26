@@ -1,6 +1,6 @@
 module.exports = {
-    host: '',
-    user: '',
-    password: '',
-    database: ''  // DB이름
-  };
+  host: '',
+  user: '',
+  password: '',
+  database: ''  // DB이름
+};

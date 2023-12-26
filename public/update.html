@@ -1,71 +1,68 @@
-<!-- update.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <!-- 페이지의 메타 정보를 설정합니다. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-</head>
-<style>
-    /* 페이지의 스타일을 지정하는 CSS 코드입니다. */
-
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f4f4f4;
-    }
-
-    form {
-        max-width: 600px;
-        margin: 20px auto;
-        padding: 20px;
-        background-color: #fff;
-        border: 1px solid #ddd;
-    }
-
-    label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-    }
-
-    input[type="text"],
-    textarea {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 10px;
-        box-sizing: border-box;
-    }
-
-    button {
-        background-color: #333;
-        color: #fff;
-        padding: 10px;
-        border: none;
-        cursor: pointer;
-        border-radius: 5px;
-        margin-right: 10px;
-    }
-
-    button:hover {
-        background-color: #555;
-    }
-
-    h1 a {
-        text-decoration: none;
-        color: #333;
-    }
-
-    h1 a:hover {
-        color: #555;
-    }
-</style>
-<body>
-    <!-- 페이지의 제목을 설정합니다. -->
     <title>게시글 수정</title>
+
+    <style>
+        /* 페이지의 스타일을 지정하는 CSS 코드입니다. */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        h1 a {
+            text-decoration: none;
+            color: #333;
+        }
+
+        h1 a:hover {
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
     <!-- 페이지 상단에 표시되는 제목입니다. -->
     <h1>게시글 수정</h1>
 
@@ -78,16 +75,12 @@
         <label for="title">제목:</label>
         <input type="text" id="title" name="title" required><br>
         
-        <!-- 작성자 입력란 -->
-        <label for="writer">작성자:</label>
-        <input type="text" id="writer" name="writer" required><br>
-        
         <!-- 내용 입력란 -->
         <label for="content">내용:</label>
         <textarea id="content" name="content" required></textarea><br>
 
         <!-- 게시글 수정 버튼 -->
-        <button type="submit">게시글 수정</button>
+        <button onclick="updateArticle()">게시글 수정</button>
 
         <!-- 뒤로가기 버튼 -->
         <button onclick="goBack()">뒤로 가기</button>
@@ -95,36 +88,60 @@
 
     <!-- JavaScript 코드입니다. -->
     <script>
-       // URL에서 게시글 ID를 가져옵니다.
-const urlParams = new URLSearchParams(window.location.search);
-const articleId = urlParams.get('id');
+        // URL에서 게시글 ID를 가져옵니다.
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleId = urlParams.get('id');
 
-// articleId가 null이 아닌 경우에만 fetch 요청을 보냅니다.
-if (articleId !== null) {
-    // 게시글 상세 정보를 가져와서 폼에 미리 채웁니다.
-    fetch(`http://localhost:3000/articles/${articleId}`)
-        .then(response => response.json())
-        .then(article => {
-            // 폼 필드에 기존 데이터로 채웁니다.
-            document.getElementById('id').value = article.idx;
-            document.getElementById('title').value = article.title;
-            document.getElementById('writer').value = article.writer;
-            document.getElementById('content').value = article.content;
-        })
-        .catch(error => {
-            console.error('게시글 정보를 가져오는 중 오류 발생:', error);
-        });
-} else {
-    console.error('게시글 ID를 찾을 수 없습니다.');
-}
+        // articleId가 null이 아닌 경우에만 fetch 요청을 보냅니다.
+        if (articleId !== null) {
+            // 게시글 상세 정보를 가져와서 폼에 미리 채웁니다.
+            fetch(`http://localhost:3000/articles/${articleId}`)
+                .then(response => response.json())
+                .then(article => {
+                    // 폼 필드에 기존 데이터로 채웁니다.
+                    document.getElementById('id').value = article.idx;
+                    document.getElementById('title').value = article.title;
+                    document.getElementById('content').value = article.content;
+                })
+                .catch(error => {
+                    console.error('게시글 정보를 가져오는 중 오류 발생:', error);
+                });
+        } else {
+            console.error('게시글 ID를 찾을 수 없습니다.');
+        }
 
-// 뒤로가기 버튼을 눌렀을 때 이전 페이지로 이동하는 함수
-function goBack() {
-    window.history.back();
-}
+        // 게시글 수정 버튼을 눌렀을 때 해당 게시글 상세보기 페이지로 이동하는 함수
+        function updateArticle() {
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+
+            // PUT 요청을 사용하여 게시글 업데이트
+            fetch(`http://localhost:3000/article/${articleId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title, content }),
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('게시글이 성공적으로 업데이트되었습니다.', result);
+                
+                // 게시글 상세보기 페이지로 이동
+                const articleDetailsURL = `http://localhost:3000/article-details.html?id=${articleId}`;
+                alert("게시글이 수정되었습니다!")
+                window.location.replace(articleDetailsURL);
+            })
+            .catch(error => {
+                console.error('게시글 업데이트 중 오류 발생:', error);
+            });
+        }
+
+        // 뒤로가기 버튼을 눌렀을 때 이전 페이지로 이동하는 함수
+        function goBack() {
+            window.history.back();
+        }
     </script>
 
-    <!-- 게시글 수정 스크립트 파일을 로드합니다. -->
-    <script src="updateArticle.js"></script>
 </body>
 </html>
