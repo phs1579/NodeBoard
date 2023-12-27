@@ -27,3 +27,12 @@ CREATE TABLE users (
     username VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL
 );
+
+npm list
+
+npm init -y
+npm install express cors body-parser mysql2
+npm install cookieParser
+npm install multer
+npm install path
+npm install bcrypt
