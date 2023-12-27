@@ -1,6 +1,6 @@
 module.exports = {
-  host: '',
-  user: '',
-  password: '',
-  database: ''  // DB이름
+  host: 'localhost',
+  user: 'nodeboards',
+  password: '!gustn12',
+  database: 'nodeboard'  // DB이름
 };

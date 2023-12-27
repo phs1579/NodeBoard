@@ -5,6 +5,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const cookieParser = require('cookie-parser');
+const multer = require('multer');
+const path = require('path');
 
 // Express 애플리케이션을 생성합니다.
 const app = express();
@@ -34,8 +36,20 @@ app.use(cookieParser());
 // 모든 라우트에 대해 CORS를 활성화하여 교차 출처 문제를 방지합니다.
 app.use(cors());
 
-// 'public' 디렉토리에서 정적 파일을 제공합니다.
+// 'public' 디렉토리에서 정적 파일을 제공합니다.app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(express.static('public', { "Content-Type": "application/javascript" }));
+// 이미지
+app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// 이미지를 저장할 디렉토리 및 파일명 지정
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'public/uploads/');
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
 
 // 메인 HTML 파일을 제공하는 라우트입니다.
 app.get('/', (req, res) => {
@@ -153,51 +167,73 @@ app.get('/logout', (req, res) => {
     }
 });
 
-// 게시글 목록을 가져오는 라우트입니다.
+// 게시글 목록을 가져오는 라우트입니다. (검색 기능 추가)
 app.get('/articles', (req, res) => {
-    const page = parseInt(req.query.page) || 1; // 요청된 페이지 번호를 쿼리 매개변수에서 가져옵니다
-    const pageSize = 3; // 페이지당 게시글 수
-
-    // 요청된 페이지 및 페이지 크기를 기반으로 레코드를 건너뛰기 위한 오프셋을 계산합니다.
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = 3;
     const offset = (page - 1) * pageSize;
 
-    // 'board' 테이블에서 페이지별로 정렬된 레코드를 선택하는 데이터베이스 쿼리를 실행합니다.
-    const query = 'SELECT * FROM board ORDER BY idx DESC LIMIT ? OFFSET ?';
-    connection.query(query, [pageSize, offset], (err, rows) => {
-        if (err) {
-            console.error('페이징된 게시글 목록을 가져오는 중 오류 발생:', err);
-            // 오류가 발생하면 오류 응답을 전송합니다.
+    // 검색어를 쿼리 매개변수에서 가져옵니다.
+    const searchKeyword = req.query.search || '';
+
+    // 검색어가 있는 경우 검색 쿼리를 실행하고, 없는 경우 모든 게시물을 가져오는 쿼리를 실행합니다.
+    const query = searchKeyword
+        ? 'SELECT * FROM board WHERE title LIKE ? ORDER BY idx DESC LIMIT ? OFFSET ?'
+        : 'SELECT * FROM board ORDER BY idx DESC LIMIT ? OFFSET ?';
+
+    const searchKeywordWithWildcards = `%${searchKeyword}%`;
+
+    // 쿼리에 따라 매개변수 설정
+    const queryParams = searchKeyword ? [searchKeywordWithWildcards, pageSize, offset] : [pageSize, offset];
+
+    connection.query(query, queryParams, (searchErr, searchRows) => {
+        if (searchErr) {
+            console.error('게시글 목록을 가져오는 중 오류 발생:', searchErr);
             return res.status(500).send('서버 오류');
         }
 
-        // 'board' 테이블의 총 레코드 수를 가져오는 쿼리
-        const countQuery = 'SELECT COUNT(*) AS totalCount FROM board';
-        connection.query(countQuery, (err, result) => {
-            if (err) {
-                console.error('총 레코드 수를 가져오는 중 오류 발생:', err);
+        // 검색된 게시글 수를 가져오는 쿼리
+        const countQuery = searchKeyword
+            ? 'SELECT COUNT(*) AS totalCount FROM board WHERE title LIKE ?'
+            : 'SELECT COUNT(*) AS totalCount FROM board';
+
+        const countQueryParams = searchKeyword ? [searchKeywordWithWildcards] : [];
+
+        connection.query(countQuery, countQueryParams, (countErr, countResult) => {
+            if (countErr) {
+                console.error('총 레코드 수를 가져오는 중 오류 발생:', countErr);
                 return res.status(500).send('서버 오류');
             }
 
-            const totalCount = result[0].totalCount;
+            const totalCount = countResult[0].totalCount;
             const totalPages = Math.ceil(totalCount / pageSize);
 
             // 검색된 레코드 및 최대 페이지 수를 응답으로 전송합니다.
-            res.send({ rows, totalPages, page_current: page, page_max: totalPages });
+            res.send({
+                rows: searchRows,
+                totalPages,
+                page_current: page,
+                page_max: totalPages,
+                searchKeyword,
+            });
         });
     });
 });
 
-// 새로운 게시글을 작성하는 라우트입니다.
-app.post('/article', jsonParser, (req, res) => {
+// 새로운 게시글을 작성하는 라우트입니다. (이미지 업로드 기능 추가)
+app.post('/article', upload.single('image'), jsonParser, (req, res) => {
     // 'board' 테이블에 새 레코드를 삽입하기 위한 SQL 쿼리입니다.
-    const sql = 'INSERT INTO board (title, user_id, content) VALUES (?,?,?)';
+    const sql = 'INSERT INTO board (title, user_id, content, image_url) VALUES (?,?,?,?)';
     const title = req.body.title;
-
-    // 변경된 부분: user_id 정보를 req.body.user_id에서 가져옵니다.
     const user_id = req.body.user_id;
-
     const content = req.body.content;
-    const params = [title, user_id, content];
+    const maxFilenameLength = 100; // Adjust this value based on your requirements
+
+   // 변경된 부분: 이미지 파일이 업로드된 경우, 이미지 URL을 요청 데이터에 추가합니다.
+   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // 변경된 부분: params 변수를 정의하여 데이터를 담습니다.
+    const params = [title, user_id, content, imageUrl];
 
     // 주어진 매개변수로 쿼리를 실행합니다.
     connection.query(sql, params, (err, rows, fields) => {
@@ -213,7 +249,9 @@ app.post('/article', jsonParser, (req, res) => {
     });
 });
 
-// 기존 게시글을 ID를 기반으로 업데이트하는 라우트입니다.
+
+
+// 기존 게시글을 ID를 기반으로 가져오는 라우트입니다.
 app.get('/articles/:id', (req, res) => {
     const articleId = req.params.id;
     console.log(`ID가 ${articleId}인 게시글을 가져오는 중`);
@@ -232,9 +270,21 @@ app.get('/articles/:id', (req, res) => {
         }
 
         const article = rows[0];
-        res.json(article);
+
+        // Increase the view count in the database
+        connection.query('UPDATE board SET view_cnt = view_cnt + 1 WHERE idx = ?', [articleId], (updateErr, updateResult) => {
+            if (updateErr) {
+                console.error('조회수를 증가하는 중 오류 발생:', updateErr);
+                // 오류 응답을 반환합니다.
+                return res.status(500).json({ error: '내부 서버 오류', details: updateErr.message });
+            }
+
+            console.log(`ID가 ${articleId}인 게시글의 조회수를 증가함`);
+            res.json(article);
+        });
     });
 });
+
 
 // ID를 기반으로 게시글을 삭제하는 라우트입니다.
 app.delete('/article/:id', (req, res, next) => {
@@ -256,8 +306,8 @@ app.delete('/article/:id', (req, res, next) => {
     });
 });
 
-// 기존의 글을 ID를 기반으로 업데이트하는 엔드포인트
-app.put('/article/:id', jsonParser, (req, res) => {
+// 게시글 수정
+app.put('/article/:id', upload.single('image'), jsonParser, (req, res) => {
     // 요청에서 필요한 정보 추출
     const articleId = req.params.id;
     const { title, content } = req.body;
@@ -274,16 +324,64 @@ app.put('/article/:id', jsonParser, (req, res) => {
             return res.status(404).json({ status: 404, message: '글을 찾을 수 없습니다.' });
         }
 
+        // 변경된 부분: 이미지 파일이 업로드된 경우, 이미지 URL을 요청 데이터에 추가합니다.
+        const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
         // 새로운 데이터로 글 업데이트
-        connection.query('UPDATE board SET title = ?, content = ?, update_time = CURRENT_TIMESTAMP WHERE idx = ?', [title, content, articleId], (err, rows) => {
+        let updateQuery = 'UPDATE board SET title = ?, content = ?, update_time = CURRENT_TIMESTAMP';
+        
+        // 이미지 URL이 있는 경우에만 추가
+        if (imageUrl) {
+            updateQuery += ', image_url = ?';
+        }
+
+        updateQuery += ' WHERE idx = ?';
+
+        const updateParams = [title, content];
+
+        // 이미지 URL이 있는 경우에만 매개변수에 추가
+        if (imageUrl) {
+            updateParams.push(imageUrl);
+        }
+
+        updateParams.push(articleId);
+
+        connection.query(updateQuery, updateParams, (err, rows) => {
             if (err) {
                 console.error('글 업데이트 중 오류 발생:', err);
                 return res.status(500).json({ status: 500, message: '내부 서버 오류' });
             }
 
             // 업데이트가 성공하면 성공 메시지와 데이터 반환
-            res.json({ status: 200, message: '수정이 완료되었습니다.', data: { title, content } });
+            res.json({ status: 200, message: '수정이 완료되었습니다.', data: { title, content, imageUrl } });
         });
+    });
+});
+
+
+// 댓글
+app.post('/comment', jsonParser, (req, res) => {
+    const { article_id, user_id, comment_text } = req.body;
+    const insertCommentQuery = 'INSERT INTO comments (article_id, user_id, comment_text) VALUES (?, ?, ?)';
+    connection.query(insertCommentQuery, [article_id, user_id, comment_text], (err, result) => {
+        if (err) {
+            console.error('댓글 추가 중 오류 발생:', err);
+            return res.status(500).json({ success: false, message: '서버 오류' });
+        }
+        res.status(201).json({ success: true, message: '댓글이 성공적으로 작성되었습니다.', data: result });
+    });
+});
+
+
+app.get('/comments/:article_id', (req, res) => {
+    const articleId = req.params.article_id;
+    const getCommentsQuery = 'SELECT * FROM comments WHERE article_id = ? ORDER BY created_at DESC';
+    connection.query(getCommentsQuery, [articleId], (err, comments) => {
+        if (err) {
+            console.error('댓글 가져오기 중 오류 발생:', err);
+            return res.status(500).json({ success: false, message: '서버 오류' });
+        }
+        res.json(comments);
     });
 });
 

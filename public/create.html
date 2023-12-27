@@ -52,13 +52,14 @@
 <h1>Create Article</h1>
 
 <!-- 게시글 작성 폼입니다. -->
-<form id="create-form">
+<form id="create-form" enctype="multipart/form-data">
     <label for="title">제목:</label>
     <input type="text" id="title" name="title" required><br>
 
     <label for="user_id">작성자:</label>
     <input type="text" id="user_id" name="user_id" value="<%= user.username %>" readonly required><br>
-
+    <label for="image">이미지 업로드:</label>
+    <input type="file" id="image" name="image">
     <label for="content">내용:</label>
     <textarea id="content" name="content" required></textarea><br>
 
@@ -72,6 +73,7 @@
 
 <!-- 뒤로가기 버튼을 처리하는 스크립트입니다. -->
 <script>
+    
     // 뒤로가기 버튼을 눌렀을 때 이전 페이지로 이동하는 함수
     function goBack() {
         window.history.back();
@@ -102,6 +104,9 @@
         document.addEventListener('DOMContentLoaded', function () {
     const createForm = document.getElementById('create-form');
 
+    // Declare formData outside the event listener
+    const formData = new FormData();
+
     createForm.addEventListener('submit', function (event) {
         event.preventDefault();
 
@@ -119,22 +124,33 @@
         // Retrieve the user ID from the cookie
         const userId = getCookie('userID');
 
-        // Create an object with the data
-        const articleData = {
-            title: title,
-            user_id: user_id,
-            content: content,
-            userId: userId
-        };
+        // Clear existing form data before appending new data
+        formData.delete('title');
+        formData.delete('user_id');
+        formData.delete('content');
+        formData.delete('userId');
+        formData.delete('image');
+
+        // Append form data
+        formData.append('title', title);
+        formData.append('user_id', user_id);
+        formData.append('content', content);
+        formData.append('userId', userId);
+
+        // Get the selected file input
+        const imageInput = document.getElementById('image');
+        // Check if a file is selected
+        if (imageInput.files.length > 0) {
+            formData.append('image', imageInput.files[0]);
+        }
 
         // AJAX or Fetch API to send the article creation request to the server
-        fetch('/article', {  // Update the endpoint to match your server-side route
+        fetch('/article', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + userId
             },
-            body: JSON.stringify(articleData)
+            body: formData  // Use the FormData object for file uploads
         })
         .then(response => response.json())
         .then(data => {
@@ -163,5 +179,4 @@
         return null;
     }
 });
-
 </script>

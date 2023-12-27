@@ -17,10 +17,16 @@
         }
 
         h1 {
-            background-color: #343a40;
-            color: #ffffff;
-            padding: 20px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
             margin: 0;
+        }
+
+        h1 a {
+            text-decoration: none;
+            color: #fff;
+            transition: color 0.3s ease;
         }
 
         nav ul {
@@ -132,7 +138,7 @@
     <!-- 페이지의 제목을 설정합니다. -->
     <title>게시글 목록</title>
     <!-- 페이지 상단에 표시되는 제목입니다. -->
-    <h1>게시글 목록</h1> 
+    <h1><a href="http://localhost:3000/">게시글 목록</a></h1>
     <div id="userInfo"></div>
     <!-- 네비게이션 링크 -->
     <nav>
@@ -141,7 +147,12 @@
             <li><a href="#" onclick="handleCreateClick()">게시글 작성</a></li>
         </ul>
     </nav>
-
+        <!-- 검색 상자를 추가합니다. -->
+        <div>
+            <label for="searchInput">검색:</label>
+            <input type="text" id="searchInput" placeholder="제목으로 검색">
+            <button onclick="performSearch()">검색</button>
+        </div>
     <!-- 게시글 목록을 표시하는 부분입니다. -->
     <ul id="articles-list"></ul>
 
@@ -157,7 +168,7 @@
         const pageListElement = document.getElementById('pageList'); // HTML에서 페이지 목록을 표시할 엘리먼트
         let currentPage = 1; // 현재 페이지 변수 초기화
         let maxPages = 1; // 최대 페이지 수를 저장하는 변수 초기화
-
+        let searchKeyword = ''; // 전역 변수로 검색어 저장
         // 함수: 게시글 목록을 가져오는 함수
         function fetchArticles(page) {
             const pageSize = 5; // 페이지당 표시할 게시글 수 (원하는 값으로 조절)
@@ -178,9 +189,8 @@
                             <strong>Writer:</strong> ${article.user_id}<br>
                             <strong>Content:</strong> ${article.content}<br>
                             <strong>Views:</strong> ${article.view_cnt}<br>
-                            <strong>Insert Time:</strong> ${article.insert_time}<br>
-                            <strong>Update Time:</strong> ${article.update_time ? article.update_time : 'N/A'}<br>
-                            <strong>Delete Time:</strong> ${article.delete_time ? article.delete_time : 'N/A'}<br>
+                            <strong>Insert Time:</strong> ${formatCommentTime(article.insert_time)}<br>
+                            <strong>Update Time:</strong> ${formatCommentTime(article.update_time)}<br>
                             <a href="article-details.html?id=${article.idx}">상세 정보 보기</a><br>
                             <hr>
                         `;
@@ -313,6 +323,80 @@
                 })
                 .catch(error => {
                     console.error('Error during logout:', error);
+                });
+        }
+
+        // 글 작성 시간을 한국 시간으로 형식화하는 함수
+        function formatCommentTime(timeString) {
+            if (!timeString) {
+                return 'N/A';
+            }
+
+            const options = {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+            };
+            const commentTime = new Date(timeString).toLocaleDateString('ko-KR', options);
+            return commentTime;
+        }
+
+        // 함수: 검색 실행
+        function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchKeyword = searchInput.value.trim(); // 검색어를 업데이트
+
+            // URL 업데이트
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('search', searchKeyword);
+            window.history.replaceState({}, '', currentUrl.toString());
+
+            // 현재 페이지에서 검색을 수행
+            fetchArticles(currentPage);
+        }
+
+
+        // 함수: 게시글 목록을 가져오는 함수
+        function fetchArticles(page) {
+            const pageSize = 5;
+            const startIndex = (page - 1) * pageSize;
+
+            // URL에서 검색어 가져오기
+            const url = new URL(window.location.href);
+            const searchKeywordFromUrl = url.searchParams.get('search') || '';
+
+            // 서버로부터 게시글 데이터 및 검색어 가져오기
+            const apiUrl = `http://localhost:3000/articles?page=${page}&search=${searchKeywordFromUrl}`;
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const articles = data.rows; // 서버에서 받아온 게시글 데이터
+                    articlesList.innerHTML = ''; // 이전에 표시된 게시글 초기화
+                    // 페이지 목록 업데이트
+                    renderPaginationControls(data.page_current, data.page_max);
+                    // 각 게시글을 리스트에 추가
+                    articles.forEach(article => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <strong>Title:</strong> ${article.title}<br>
+                            <strong>Writer:</strong> ${article.user_id}<br>
+                            <strong>Content:</strong> ${article.content}<br>
+                            <strong>Views:</strong> ${article.view_cnt}<br>
+                            <strong>Insert Time:</strong> ${formatCommentTime(article.insert_time)}<br>
+                            <strong>Update Time:</strong> ${formatCommentTime(article.update_time)}<br>
+                            <a href="article-details.html?id=${article.idx}">상세 정보 보기</a><br>
+                            <hr>
+                        `;
+                        articlesList.appendChild(li);
+                    });
+
+                    // 전체 페이지 수 업데이트
+                    maxPages = data.totalPages;
+
+                    // 페이지 목록 업데이트
+                    renderPaginationControls(data.page_current, data.page_max);
                 });
         }
     </script>
