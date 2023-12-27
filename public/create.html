@@ -1,0 +1,182 @@
+<!-- create.html -->
+
+<style>
+    /* create.html에 해당하는 CSS 스타일 */
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+
+    form {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    input[type="text"],
+    textarea {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
+
+    button {
+        background-color: #333;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        margin-right: 10px; /* 추가된 부분: 뒤로가기 버튼과의 간격을 조절합니다. */
+    }
+
+    button:hover {
+        background-color: #555;
+    }
+
+</style>
+
+<!-- 페이지 상단에 표시되는 제목입니다. -->
+<h1>Create Article</h1>
+
+<!-- 게시글 작성 폼입니다. -->
+<form id="create-form" enctype="multipart/form-data">
+    <label for="title">제목:</label>
+    <input type="text" id="title" name="title" required><br>
+
+    <label for="user_id">작성자:</label>
+    <input type="text" id="user_id" name="user_id" value="<%= user.username %>" readonly required><br>
+    <label for="image">이미지 업로드:</label>
+    <input type="file" id="image" name="image">
+    <label for="content">내용:</label>
+    <textarea id="content" name="content" required></textarea><br>
+
+    <!-- 게시글 작성 버튼 -->
+    <button type="submit">게시글 작성</button>
+
+    <!-- 뒤로가기 버튼 -->
+    <button onclick="goBack()">뒤로 가기</button>
+</form>
+
+
+<!-- 뒤로가기 버튼을 처리하는 스크립트입니다. -->
+<script>
+    
+    // 뒤로가기 버튼을 눌렀을 때 이전 페이지로 이동하는 함수
+    function goBack() {
+        window.history.back();
+    }
+
+    // 변경된 부분: 사용자 정보 가져와서 작성자 필드에 설정
+    fetch('/checkSession')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(user => {
+            const writerField = document.getElementById('user_id');
+            if (user) {
+                // 세션에서 가져온 사용자 이름을 작성자 필드에 설정
+                writerField.value = user.username;
+            } else {
+                // 사용자가 로그인하지 않은 경우에 대한 처리
+                console.log('User not logged in.');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking user session:', error);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+    const createForm = document.getElementById('create-form');
+
+    // Declare formData outside the event listener
+    const formData = new FormData();
+
+    createForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        // Retrieve values from form fields
+        const title = document.getElementById('title').value;
+        const user_id = document.getElementById('user_id').value;
+        const content = document.getElementById('content').value;
+
+        // Check if any of the required fields are empty
+        if (!title || !user_id || !content) {
+            console.error('Incomplete data for article creation');
+            return;  // Stop further execution if data is incomplete
+        }
+
+        // Retrieve the user ID from the cookie
+        const userId = getCookie('userID');
+
+        // Clear existing form data before appending new data
+        formData.delete('title');
+        formData.delete('user_id');
+        formData.delete('content');
+        formData.delete('userId');
+        formData.delete('image');
+
+        // Append form data
+        formData.append('title', title);
+        formData.append('user_id', user_id);
+        formData.append('content', content);
+        formData.append('userId', userId);
+
+        // Get the selected file input
+        const imageInput = document.getElementById('image');
+        // Check if a file is selected
+        if (imageInput.files.length > 0) {
+            formData.append('image', imageInput.files[0]);
+        }
+
+        // AJAX or Fetch API to send the article creation request to the server
+        fetch('/article', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + userId
+            },
+            body: formData  // Use the FormData object for file uploads
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Server response handling and displaying result message
+            console.log(data.message);
+            if (data.status === 201) {
+                // Article creation successful, redirect to the desired page
+                alert("게시글이 생성되었습니다!");
+                window.location.href = 'http://localhost:3000/';  // Update the URL as needed
+            }
+        })
+        .catch(error => {
+            console.error('Error creating article:', error);
+        });
+    });
+
+    // Function to retrieve a cookie by name
+    function getCookie(name) {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [cookieName, cookieValue] = cookie.trim().split('=');
+            if (cookieName === name) {
+                return cookieValue;
+            }
+        }
+        return null;
+    }
+});
+</script>
