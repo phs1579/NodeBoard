@@ -38,8 +38,10 @@ app.use(cors());
 
 // 'public' 디렉토리에서 정적 파일을 제공합니다.app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(express.static('public', { "Content-Type": "application/javascript" }));
-// 이미지
+
+// 이미지 주소 연동
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
 // 이미지를 저장할 디렉토리 및 파일명 지정
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -227,7 +229,6 @@ app.post('/article', upload.single('image'), jsonParser, (req, res) => {
     const title = req.body.title;
     const user_id = req.body.user_id;
     const content = req.body.content;
-    const maxFilenameLength = 100; // Adjust this value based on your requirements
 
    // 변경된 부분: 이미지 파일이 업로드된 경우, 이미지 URL을 요청 데이터에 추가합니다.
    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
